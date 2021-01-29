@@ -6,8 +6,17 @@ authors = ["Paolo Dina <paolo.dina@codingmoth.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
+ormar = "^0.8.1"
+aiosqlite = "^0.16.1"
+fastapi = "^0.63.0"
+email-validator = "^1.1"
+uvicorn = {version = "^0.13.3", extras = ["standard"]}
+jedi = "=0.17.2"
 
 [tool.poetry.dev-dependencies]
+ipython = "^7.19"
+autopep8 = "^1.5"
+flake8 = "^3.8"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
