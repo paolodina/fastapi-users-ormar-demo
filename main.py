@@ -1,15 +1,17 @@
-# Ref.
-# https://collerek.github.io/ormar/fastapi/
-from typing import Optional
+from fastapi_users.authentication import CookieAuthentication
+
+from fastapi_users import FastAPIUsers
 
 import databases
-import ormar
 import sqlalchemy
 from fastapi import FastAPI
+from fastapi_users import models
+from fastapi_users.db import OrmarBaseUserModel, OrmarUserDatabase
+
 
 app = FastAPI()
 metadata = sqlalchemy.MetaData()
-database = databases.Database("sqlite:///test.db")
+database = databases.Database("sqlite://./test.db")
 app.state.database = database
 
 
@@ -27,22 +29,62 @@ async def shutdown() -> None:
         await database_.disconnect()
 
 
-class Category(ormar.Model):
+class User(models.BaseUser):
+    pass
+
+
+class UserCreate(models.BaseUserCreate):
+    pass
+
+
+class UserUpdate(User, models.BaseUserUpdate):
+    pass
+
+
+class UserDB(User, models.BaseUserDB):
+    pass
+
+
+class UserModel(OrmarBaseUserModel):
     class Meta:
-        tablename = "categories"
+        tablename = "users"
         metadata = metadata
         database = database
 
-    id: int = ormar.Integer(primary_key=True)
-    name: str = ormar.String(max_length=100)
 
+user_db = OrmarUserDatabase(UserDB, UserModel)
 
-class Item(ormar.Model):
-    class Meta:
-        tablename = "items"
-        metadata = metadata
-        database = database
+# ############### AUTH
+SECRET = "SECRET"
+auth_backends = []
+cookie_authentication = CookieAuthentication(
+    secret=SECRET, lifetime_seconds=3600,
+    cookie_secure=False)
+auth_backends.append(cookie_authentication)
 
-    id: int = ormar.Integer(primary_key=True)
-    name: str = ormar.String(max_length=100)
-    category: Optional[Category] = ormar.ForeignKey(Category, nullable=True)
+# ############### ROUTING
+fastapi_users = FastAPIUsers(
+    user_db,
+    auth_backends,
+    User,
+    UserCreate,
+    UserUpdate,
+    UserDB,
+)
+
+app.include_router(
+    fastapi_users.get_auth_router(cookie_authentication),
+    tags=["auth"],
+)
+
+app.include_router(
+    fastapi_users.get_register_router(),
+    prefix="/auth",
+    tags=["auth"],
+)
+
+app.include_router(
+    fastapi_users.get_users_router(),
+    prefix="/users",
+    tags=["users"],
+)
